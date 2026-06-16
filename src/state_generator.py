@@ -133,14 +133,18 @@ class StateGenerator:
 
         self._add_transition(s_sign, "0", s_zero)
         self._add_transition(s_sign, "123456789", s_integer)
+
+        self._add_transition(s_zero, ".", s_dot)
+
         self._add_transition(s_integer, "0123456789", s_integer)
         self._add_transition(s_integer, ".", s_dot)
-        self._add_transition(s_zero, ".", s_dot)
-        self._add_transition(s_dot, "0123456789", s_fraction)
-        self._add_transition(s_fraction, "0123456789", s_fraction)
 
+        self._add_transition(s_dot, "0123456789", s_fraction)
+
+        self._add_transition(s_fraction, "0123456789", s_fraction)
         self._add_transition(s_fraction, " ", s_white_space)
         self._add_transition(s_fraction, sep, next_target)
+
         self._add_transition(s_white_space, sep, next_target)
 
         return next_target
@@ -151,6 +155,8 @@ class StateGenerator:
         s_sign = self._add_state()
         s_zero = self._add_state()
         s_integer = self._add_state()
+        s_white_space = self._add_state()
+        next_target = self._add_state()
 
         self._add_transition(prev_state, "-", s_sign)
         self._add_transition(prev_state, "0", s_zero)
@@ -158,10 +164,9 @@ class StateGenerator:
 
         self._add_transition(s_sign, "0", s_zero)
         self._add_transition(s_sign, "123456789", s_integer)
+        
         self._add_transition(s_integer, "0123456789", s_integer)
 
-        s_white_space = self._add_state()
-        next_target = self._add_state()
         for state in [s_zero, s_integer]:
             self._add_transition(state, " ", s_white_space)
             self._add_transition(state, sep, next_target)
