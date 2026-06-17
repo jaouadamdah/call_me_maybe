@@ -21,9 +21,9 @@ if __name__ == "__main__":
             try:
                 print(f"\n{'-' * 10}[{args.name}]{'-' * 10}\n")
                 pipeline = App(
-                    model,
-                    args.functions_definition,
-                    args.max_token if args.max_token > 0 else None,
+                    model=model,
+                    tools_path=args.functions_definition,
+                    max_token=args.max_token if args.max_token > 0 else None,
                 )
                 t0 = time.perf_counter()
                 pipeline.run(args.input, args.output)

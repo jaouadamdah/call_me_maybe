@@ -1,25 +1,50 @@
+from pydantic import BaseModel, model_validator, Field
 from typing import Any
 
 
-class StateGenerator:
+class StateGenerator(BaseModel):
     """Constructs and manages the states for JSON schema constraints."""
 
-    def __init__(
-        self,
-        tools: dict[str, Any],
-    ):
-        """Initializes the state generator and builds the states.
+    tools: dict[str, Any]
+    states: dict[int, dict[str, int]] = Field(default_factory=dict, init=False)
+    next_state_id: int = Field(default=0, init=False)
+    any_states: set[int] = Field(default_factory=set, init=False)
+    end_states: set[int] = Field(default_factory=set, init=False)
 
-        Args:
-            tools (dict[str, Any]): The loaded and validated tools schema.
-        """
+    @model_validator(mode="after")
+    def build_states(self) -> "StateGenerator":
+        """Iterates over the tools schema to construct the states."""
+        root_branch = self._build_sequence('{"name":"')
 
-        self.states: dict[int, dict[str, int]] = {}
-        self.next_state_id: int = 0
-        self.any_states: set[int] = set()
-        self.end_states: set[int] = set()
+        for fn_name, data in self.tools.items():
+            params = data["parameters"]
 
-        self._generate(tools)
+            last_state = self._build_sequence(
+                f'{fn_name}","parameters":{{',
+                root_branch,
+            )
+
+            length = len(params)
+            for i, (arg_name, arg_type) in enumerate(params.items()):
+                sep = "," if i < length - 1 else "}"
+
+                last_state = self._build_sequence(f'"{arg_name}":', last_state)
+
+                if arg_type == "number" or arg_type == "float":
+                    last_state = self._build_number(last_state, sep)
+                elif arg_type == "integer":
+                    last_state = self._build_integer(last_state, sep)
+                elif arg_type == "boolean":
+                    last_state = self._build_boolean(last_state, sep)
+                else:
+                    last_state = self._build_string(last_state, sep)
+
+            suffix = "}" if length else "}}"
+            last_state = self._build_sequence(suffix, curr=last_state)
+
+            self.end_states.add(last_state)
+
+        return self
 
     def _add_state(self) -> int:
         """Creates a new empty state and returns its ID."""
@@ -169,40 +194,11 @@ class StateGenerator:
 
         return next_target
 
-    def _generate(self, tools: dict[str, Any]) -> None:
-        """Iterates over the tools schema to construct the states."""
-        root_branch = self._build_sequence('{"name":"')
-
-        for fn_name, data in tools.items():
-            params = data["parameters"]
-
-            last_state = self._build_sequence(
-                f'{fn_name}","parameters":{{',
-                root_branch,
-            )
-
-            length = len(params)
-            for i, (arg_name, arg_type) in enumerate(params.items()):
-                sep = "," if i < length - 1 else "}"
-
-                last_state = self._build_sequence(f'"{arg_name}":', last_state)
-
-                if arg_type == "number" or arg_type == "float":
-                    last_state = self._build_number(last_state, sep)
-                elif arg_type == "integer":
-                    last_state = self._build_integer(last_state, sep)
-                elif arg_type == "boolean":
-                    last_state = self._build_boolean(last_state, sep)
-                else:
-                    last_state = self._build_string(last_state, sep)
-
-            suffix = "}" if length else "}}"
-            last_state = self._build_sequence(suffix, curr=last_state)
-
-            self.end_states.add(last_state)
-
-    def next_state(self, cur_state_id: int, token: str,
-                   ) -> int | None:
+    def next_state(
+        self,
+        cur_state_id: int,
+        token: str,
+    ) -> int | None:
         """Retrieves the next state ID based on the current state and token.
 
         Args:

@@ -2,39 +2,30 @@ import numpy as np
 from typing import Any
 
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
+from pydantic import BaseModel, model_validator, ConfigDict, Field
 
 from .NextTokenSelector import NextTokenSelector
 from .state_generator import StateGenerator
 
 
-class Generator:
+class Generator(BaseModel):
     """
     Manages the token-by-token generation process with constrained decoding.
     """
 
-    def __init__(
-        self,
-        model: Small_LLM_Model,
-        states: StateGenerator,
-        get_next_token: NextTokenSelector,
-        vocab: dict[Any, Any],
-        max_token: int | None = None,
-    ) -> None:
-        """Initializes the generator.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-        Args:
-            model (Small_LLM_Model): The LLM SDK.
-            states (StateGenerator): The states handling schema rules.
-            next_token_selector (NextTokenSelector): The token filtering logic.
-            vocab (dict[str, int]): The vocabulary mapping strings to IDs.
-            max_token (int | None): Max tokens to generate. Defaults to None.
-        """
+    model: Small_LLM_Model
+    states: StateGenerator
+    get_next_token: NextTokenSelector
+    raw_vocab: dict[str, int]
+    max_token: int | None = None
+    vocab: dict[int, str] = Field(default_factory=dict, init=False)
 
-        self.model: Small_LLM_Model = model
-        self.states: StateGenerator = states
-        self.get_next_token: NextTokenSelector = get_next_token
-        self.vocab: dict[int, str] = {id: token for token, id in vocab.items()}
-        self.max_token = max_token
+    @model_validator(mode="after")
+    def build_vocab(self) -> "Generator":
+        self.vocab = {id: token for token, id in self.raw_vocab.items()}
+        return self
 
     def call(self, prompt: str) -> str:
         """Executes the constrained generation loop for a given prompt.

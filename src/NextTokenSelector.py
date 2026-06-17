@@ -1,43 +1,30 @@
 import numpy as np
+
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import Any
 
 from .state_generator import StateGenerator
 
 
-class NextTokenSelector:
+class NextTokenSelector(BaseModel):
     """Filters logits based on states to enforce valid token generation."""
 
-    def __init__(
-        self,
-        vocab: dict[str, int],
-        states: StateGenerator,
-    ):
-        """Initializes the NextTokenSelector with a caching mechanism.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-        Args:
-            vocab (dict[str, int]): The vocabulary.
-            states (StateGenerator): The states handling the schema rules.
-        """
+    raw_vocab: dict[str, int]
+    states: StateGenerator
+    cache: dict[int, tuple[int, np.ndarray[Any, Any], dict[int, int]]] = Field(
+        default_factory=dict, init=False
+    )
+    vocab: dict[str, Any] = Field(
+        default_factory=lambda: {"any": set()},
+        init=False,
+    )
+    logits_len: int | None = Field(default=None, init=False)
+    logits_ids: set = Field(default_factory=set, init=False)
 
-        self.cache: dict[int, tuple[int,
-                                    np.ndarray[Any, Any], dict[int, int]]] = {}
-        self.vocab = self.build_vocab(vocab)
-        self.states = states
-        self.logits_len: int | None = None
-
-    @staticmethod
-    def build_vocab(
-        vocab: dict[str, int],
-    ) -> dict[str, Any]:
-        """Groups vocabulary tokens by their first character.
-
-        Args:
-            vocab (dict[str, int]): Raw vocabulary mapping.
-
-        Returns:
-            dict[str, Any]: A nested dictionary grouping tokens. It also
-            maintains a special 'any' set for unconstrained string states.
-        """
+    @model_validator(mode="after")
+    def build_vocab(self) -> "NextTokenSelector":
 
         def check_token(token: str) -> bool:
             for char in token:
@@ -45,16 +32,14 @@ class NextTokenSelector:
                     return False
             return True
 
-        valid_vocab: dict[str, Any] = {"any": set()}
-        for token, token_id in vocab.items():
-            valid_vocab.setdefault(token[0], {})[token] = token_id
+        for token, token_id in self.raw_vocab.items():
+            self.vocab.setdefault(token[0], {})[token] = token_id
             if check_token(token):
-                valid_vocab["any"].add(token_id)
+                self.vocab["any"].add(token_id)
 
-        return valid_vocab
+        return self
 
-    def run(self, curr_state_id: int, logits: np.ndarray[Any, Any]
-            ) -> tuple[int, int]:
+    def run(self, curr_state_id: int, logits: np.ndarray[Any, Any]) -> tuple[int, int]:
         """Modifies logits based on the current state and selects the next \
             token.
 

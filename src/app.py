@@ -2,6 +2,7 @@ import os
 import json
 
 from typing import Any
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 
@@ -11,37 +12,45 @@ from .NextTokenSelector import NextTokenSelector
 from .loaders import load_functions_schema, load_prompts, load_vocab
 
 
-class App:
+class App(BaseModel):
     """Main class for function calling process."""
 
-    def __init__(
-        self,
-        model: Small_LLM_Model,
-        tools_path: str,
-        max_token: int | None = None,
-    ) -> None:
-        """Initializes the App with model, tools, and vocabulary.
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-        Args:
-            model (Small_LLM_Model): The LLM sdk.
-            tools_path (str): File path to the JSON tools schema.
-            max_token (int | None): Maximum tokens to generate.
-        """
+    model: Small_LLM_Model
+    tools_path: str
+    max_token: int | None = None
 
-        self.tools: dict[str, Any] = load_functions_schema(tools_path)
-        self.vocab: dict[str, int] = load_vocab(model.get_path_to_vocab_file())
+    tools: dict[str, Any] = Field(default_factory=dict, init=False)
+    vocab: dict[str, int] = Field(default_factory=dict, init=False)
 
-        self.states = StateGenerator(self.tools)
+    states: StateGenerator | None = Field(default=None, init=False)
+    base_prompt: str = Field(default="", init=False)
+    tool_caller: Generator | None = Field(default=None, init=False)
 
-        self.base_prompt: str = self._build_base_prompt()
+    @model_validator(mode="after")
+    def setup_app(self) -> "App":
+        """Loads data and initializes all internal components."""
+
+        self.tools = load_functions_schema(self.tools_path)
+        self.vocab = load_vocab(self.model.get_path_to_vocab_file())
+
+        self.states = StateGenerator(tools=self.tools)
+
+        self.base_prompt = self._build_base_prompt()
 
         self.tool_caller = Generator(
-            model,
-            self.states,
-            NextTokenSelector(self.vocab, self.states),
-            self.vocab,
-            max_token,
+            model=self.model,
+            states=self.states,
+            get_next_token=NextTokenSelector(
+                raw_vocab=self.vocab,
+                states=self.states,
+            ),
+            raw_vocab=self.vocab,
+            max_token=self.max_token,
         )
+
+        return self
 
     def _build_base_prompt(self) -> str:
         """Builds the base system prompt containing function definitions.
