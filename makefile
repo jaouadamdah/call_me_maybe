@@ -1,6 +1,8 @@
 SRC = src
 SDK = llm_sdk/llm_sdk
 PYTHON = python3
+UV = uv run
+RM = rm -fr
 
 run:
 	@uv run $(PYTHON) -m $(SRC)
@@ -13,17 +15,17 @@ debug:
 
 
 clean:
-	@rm -fr .mypy_cache
-	@rm -fr $(SRC)/__pycache__ 
-	@rm -fr $(SDK)/__pycache__
+	@$(RM) .mypy_cache
+	@$(RM) $(SRC)/__pycache__ 
+	@$(RM) $(SDK)/__pycache__
 
 
 lint:
-	@flake8 $(SRC)
-	@mypy $(SRC) --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	@$(UV) flake8 $(SRC)
+	@$(UV) mypy $(SRC) --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	@flake8 $(SRC)
-	@mypy $(SRC) --strict
+	@$(UV) flake8 $(SRC)
+	@$(UV) mypy $(SRC) --strict
 
 PHONY: install run debug clean lint lint-strict
