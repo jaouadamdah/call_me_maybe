@@ -13,7 +13,7 @@ class StateGenerator(BaseModel):
 
     @model_validator(mode="after")
     def build_states(self) -> "StateGenerator":
-        """Iterates over the tools schema to construct the states."""
+        """Iterates over the tools schema to build the states."""
         root_branch = self._build_sequence('{"name":"')
 
         for fn_name, data in self.tools.items():

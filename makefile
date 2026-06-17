@@ -5,13 +5,13 @@ UV = uv run
 RM = rm -fr
 
 run:
-	@uv run $(PYTHON) -m $(SRC)
+	@$(UV) $(PYTHON) -m $(SRC)
 
 install:
 	@uv sync
 
 debug:
-	@uv run $(PYTHON) -m pdb -m $(SRC)
+	@$(UV) $(PYTHON) -m pdb -m $(SRC)
 
 
 clean:
