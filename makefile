@@ -1,29 +1,29 @@
-MAIN = src
-
-all: run
-
-
-install:
-	uv sync
+SRC = src
+SDK = llm_sdk/llm_sdk
+PYTHON = python3
 
 run:
-	@uv run python3 -m $(MAIN)
+	@uv run $(PYTHON) -m $(SRC)
+
+install:
+	@uv sync
 
 debug:
-	@uv run python3 -m pdb -m $(MAIN)
+	@uv run $(PYTHON) -m pdb -m $(SRC)
 
 
 clean:
-	@rm -fr ./__pycache__ ./.mypy_cache
-	@rm -fr $(MAIN)/__pycache__
+	@rm -fr .mypy_cache
+	@rm -fr $(SRC)/__pycache__ 
+	@rm -fr $(SDK)/__pycache__
 
 
 lint:
-	@flake8 $(MAIN)
-	@mypy $(MAIN) --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	@flake8 $(SRC)
+	@mypy $(SRC) --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	@flake8 $(MAIN)
-	@mypy $(MAIN) --strict
+	@flake8 $(SRC)
+	@mypy $(SRC) --strict
 
-PHONY: all install run debug clean lint lint-strict
+PHONY: install run debug clean lint lint-strict
