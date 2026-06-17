@@ -21,7 +21,7 @@ class NextTokenSelector(BaseModel):
         init=False,
     )
     logits_len: int | None = Field(default=None, init=False)
-    logits_ids: set = Field(default_factory=set, init=False)
+    logits_ids: set[int] = Field(default_factory=set, init=False)
 
     @model_validator(mode="after")
     def build_vocab(self) -> "NextTokenSelector":
@@ -39,7 +39,8 @@ class NextTokenSelector(BaseModel):
 
         return self
 
-    def run(self, curr_state_id: int, logits: np.ndarray[Any, Any]) -> tuple[int, int]:
+    def run(self, curr_state_id: int, logits: np.ndarray[Any, Any]
+            ) -> tuple[int, int]:
         """Modifies logits based on the current state and selects the next \
             token.
 

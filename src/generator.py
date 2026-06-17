@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Any
 
 from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from pydantic import BaseModel, model_validator, ConfigDict, Field

@@ -1,13 +1,11 @@
 from .cli import get_args
 import sys
-import time
 
 if __name__ == "__main__":
     try:
         args = get_args()
-
         from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
-        from .app import App
+        from . import app
 
         print("loading model...")
         try:
@@ -20,14 +18,13 @@ if __name__ == "__main__":
         else:
             try:
                 print(f"\n{'-' * 10}[{args.name}]{'-' * 10}\n")
-                pipeline = App(
+                app.run(
                     model=model,
                     tools_path=args.functions_definition,
+                    input_path=args.input,
+                    output_path=args.output,
                     max_token=args.max_token if args.max_token > 0 else None,
                 )
-                t0 = time.perf_counter()
-                pipeline.run(args.input, args.output)
-                print(time.perf_counter() - t0)
             except (FileNotFoundError, PermissionError, ValueError) as e:
                 print(e, file=sys.stderr)
             except Exception as error:
@@ -35,6 +32,5 @@ if __name__ == "__main__":
                     f"An error occurred while running the program:\n{error}",
                     file=sys.stderr,
                 )
-                pass
     except KeyboardInterrupt:
         exit()
