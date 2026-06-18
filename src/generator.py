@@ -80,7 +80,8 @@ class Generator(BaseModel):
             list[int]: A list of token IDs corresponding to the input text.
         """
 
-        return self.model.encode(text)[0].tolist()
+        ids: list[int] = self.model.encode(text)[0].tolist()
+        return ids
 
     def decode(self, token_ids: list[int]) -> str:
         """
@@ -91,7 +92,8 @@ class Generator(BaseModel):
             str: The decoded string corresponding to the input token IDs.
         """
 
-        return self.model.decode(token_ids)
+        response: str = self.model.decode(token_ids)
+        return response
 
     def show_token(self, token_id: int) -> None:
         """
