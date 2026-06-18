@@ -167,8 +167,6 @@ class StateGenerator(BaseModel):
             self._add_transition(state, " ", s_white_space)
             self._add_transition(state, sep, next_target)
 
-        # self._add_transition(s_fraction, " ", s_white_space)
-        # self._add_transition(s_fraction, sep, next_target)
         self._add_transition(s_white_space, sep, next_target)
 
         return next_target

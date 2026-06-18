@@ -42,10 +42,8 @@ class Generator(BaseModel):
 
         state_id = 0
         tokens = 0
-        ids: list[int] = self.model.encode(prompt)[0].tolist()
+        ids: list[int] = self.encode(prompt)
         generated: int = len(ids)
-
-        print(self.encode(prompt), ids, sep='\n')
 
         while not self.states.is_end(state_id) and (
             not self.max_token or tokens < self.max_token
@@ -56,10 +54,14 @@ class Generator(BaseModel):
                 logits,
             )
             ids.append(token_id)
-            print(self.vocab[token_id], end="", flush=True)
+
+            self.show_token(token_id)
+
             if self.max_token:
                 tokens += 1
+
         print()
+
         if (
             not self.states.is_end(state_id)
             and self.max_token
@@ -67,30 +69,35 @@ class Generator(BaseModel):
         ):
             print("[Warning] Max tokens reached!")
 
-        res: str = self.model.decode(ids[generated:])
-        return res
+        return self.decode(ids[generated:])
 
     def encode(self, text: str) -> list[int]:
-        """Encodes a string into token IDs.
-
-        Args:
-            text (str): The input string.
-
-        Returns:
-            list[int]: A list of token IDs.
         """
-        ids = []
-        start = 0
-        length = len(text)
-        end = length
+        Encodes the given text into a list of token IDs.
+        Args:
+            text (str): The text to encode.
+        Returns:
+            list[int]: A list of token IDs corresponding to the input text.
+        """
 
-        while start != end:
-            if self.raw_vocab.get(text[start:end]):
-                print("found:", text[start:end].__repr__())
-                ids.append(self.raw_vocab[text[start:end]])
-                start = end
-                end = length
-            else:
-                end -= 1
+        return self.model.encode(text)[0].tolist()
 
-        return ids
+    def decode(self, token_ids: list[int]) -> str:
+        """
+        Decodes a list of token IDs back into a string.
+        Args:
+            token_ids (list[int]): A list of token IDs to decode.
+        Returns:
+            str: The decoded string corresponding to the input token IDs.
+        """
+
+        return self.model.decode(token_ids)
+
+    def show_token(self, token_id: int) -> None:
+        """
+        Displays the token corresponding to the given token ID.
+        Args:
+            token_id (int): The token ID to display.
+        """
+
+        print(self.vocab[token_id], end="", flush=True)

@@ -122,11 +122,11 @@ class Vocab(BaseModel):
 
         whitespace = {
             '\u0120': ' ',
-            '\u010a': '\n',
-            '\u0109': '\t',
-            '\u010d': '\r',
-            '\u010b': '\v',
-            '\u010c': '\f'
+            '\u010a': '\\n',
+            '\u0109': '\\t',
+            '\u010d': '\\r',
+            '\u010b': '\\v',
+            '\u010c': '\\f'
         }
 
         new_vocab: dict[str, int] = {}

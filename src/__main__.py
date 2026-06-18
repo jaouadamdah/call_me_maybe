@@ -18,7 +18,7 @@ if __name__ == "__main__":
             )
         else:
             try:
-                t0 = time.perf_counter()
+                start = time.perf_counter()
                 print(f"\n{'-' * 10}[{args.name}]{'-' * 10}\n")
                 app.run(
                     model=model,
@@ -27,7 +27,7 @@ if __name__ == "__main__":
                     output_path=args.output,
                     max_token=args.max_token if args.max_token > 0 else None,
                 )
-                print(f'[{time.perf_counter() - t0}]')
+                print(f'[{(time.perf_counter() - start)/60:.2f} min]')
             except (FileNotFoundError, PermissionError, ValueError) as e:
                 print(e, file=sys.stderr)
             except Exception as error:
