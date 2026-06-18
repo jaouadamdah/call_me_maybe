@@ -17,6 +17,17 @@ def run(model: Small_LLM_Model,
         output_path: str,
         max_token: int | None = None,
         ) -> None:
+    """
+    Runs the main logic of the application, generating JSON responses based on
+    the provided prompts and tools schema.
+
+    Args:
+        model (Small_LLM_Model): The LLM to use for generating responses.
+        tools_path (str): Path to the JSON file containing the tools schema.
+        input_path (str): Path to the JSON file containing the prompts.
+        output_path (str): Path to save the generated JSON responses.
+        max_token (int | None): Optional maximum number of tokens to generate.
+    """
 
     tools = load_functions_schema(tools_path)
     vocab = load_vocab(model.get_path_to_vocab_file())
@@ -42,13 +53,14 @@ def run(model: Small_LLM_Model,
 
     for i, data in enumerate(prompts, start=1):
         content = data["prompt"]
-        print(f"[{i}/{length}] {content}")
+        print(f"[{i}/{length}] {content.__repr__()}")
 
         response: str = tool_caller.call(
-            f"{base_prompt} {content}\n",
+            f"{base_prompt}{content}\n",
         )
         try:
-            obj: dict[str, str | dict[str, Any]] = json.loads(response)
+            obj: dict[str, Any] = json.loads(response, strict=False)
+            _check_output(tools[obj["name"]]["parameters"], obj["parameters"])
             results.append(
                 {
                     "prompt": content,
@@ -57,8 +69,9 @@ def run(model: Small_LLM_Model,
                 }
             )
             print("[Success] Valid JSON generated.\n")
-        except json.JSONDecodeError:
-            print("[Failed] Invalid JSON generated.\n")
+        except json.JSONDecodeError as e:
+            print("[Failed] Invalid JSON generated:\n", e)
+            print("Generated response:\n", response.__repr__(), "\n")
 
     if results:
         _save_responses(output_path, results)
@@ -66,9 +79,29 @@ def run(model: Small_LLM_Model,
         print("No responses available to save!")
 
 
+def _check_output(params_schema: dict[str, Any],
+                  params_response: dict[str, Any]) -> None:
+    """
+    Checks the output parameters against the schema and converts them to float
+    if necessary.
+
+    Args:
+        params_schema (dict): The schema defining the expected parameter types.
+        params_response (dict): The generated parameters to validate and
+          convert.
+    """
+
+    for nm, value in params_response.items():
+        if params_schema.get(nm) == "number" and not isinstance(value, float):
+            params_response[nm] = float(value)
+
+
 def _build_base_prompt(tools_schema: dict[str, Any]) -> str:
     """Builds the base system prompt containing function definitions.
 
+    Args:
+        tools_schema (dict[str, Any]): The schema defining the available tools
+          and their parameters.
     Returns:
         str: The formatted system prompt.
     """

@@ -43,7 +43,6 @@ class StateGenerator(BaseModel):
             last_state = self._build_sequence(suffix, curr=last_state)
 
             self.end_states.add(last_state)
-
         return self
 
     def _add_state(self) -> int:
@@ -164,8 +163,12 @@ class StateGenerator(BaseModel):
         self._add_transition(s_dot, "0123456789", s_fraction)
         self._add_transition(s_fraction, "0123456789", s_fraction)
 
-        self._add_transition(s_fraction, " ", s_white_space)
-        self._add_transition(s_fraction, sep, next_target)
+        for state in [s_zero, s_integer, s_fraction]:
+            self._add_transition(state, " ", s_white_space)
+            self._add_transition(state, sep, next_target)
+
+        # self._add_transition(s_fraction, " ", s_white_space)
+        # self._add_transition(s_fraction, sep, next_target)
         self._add_transition(s_white_space, sep, next_target)
 
         return next_target

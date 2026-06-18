@@ -23,6 +23,10 @@ class Generator(BaseModel):
 
     @model_validator(mode="after")
     def build_vocab(self) -> "Generator":
+        """
+        Builds a reverse vocabulary mapping from token IDs to tokens.
+        """
+
         self.vocab = {id: token for token, id in self.raw_vocab.items()}
         return self
 
@@ -40,6 +44,8 @@ class Generator(BaseModel):
         tokens = 0
         ids: list[int] = self.model.encode(prompt)[0].tolist()
         generated: int = len(ids)
+
+        print(self.encode(prompt), ids, sep='\n')
 
         while not self.states.is_end(state_id) and (
             not self.max_token or tokens < self.max_token
@@ -63,3 +69,28 @@ class Generator(BaseModel):
 
         res: str = self.model.decode(ids[generated:])
         return res
+
+    def encode(self, text: str) -> list[int]:
+        """Encodes a string into token IDs.
+
+        Args:
+            text (str): The input string.
+
+        Returns:
+            list[int]: A list of token IDs.
+        """
+        ids = []
+        start = 0
+        length = len(text)
+        end = length
+
+        while start != end:
+            if self.raw_vocab.get(text[start:end]):
+                print("found:", text[start:end].__repr__())
+                ids.append(self.raw_vocab[text[start:end]])
+                start = end
+                end = length
+            else:
+                end -= 1
+
+        return ids

@@ -25,6 +25,9 @@ class NextTokenSelector(BaseModel):
 
     @model_validator(mode="after")
     def build_vocab(self) -> "NextTokenSelector":
+        """
+        Builds a vocabulary mapping from the raw vocabulary.
+        """
 
         def check_token(token: str) -> bool:
             for char in token:

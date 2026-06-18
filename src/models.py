@@ -27,6 +27,7 @@ class ToolSchema(BaseModel):
         Returns:
             bool: True if valid, False otherwise.
         """
+
         length: int = len(name)
         if length <= 0 or (not name[0].isalpha() and name[0] != "_"):
             return False
@@ -119,12 +120,26 @@ class Vocab(BaseModel):
             ValueError: If any token ID is negative.
         """
 
+        whitespace = {
+            '\u0120': ' ',
+            '\u010a': '\n',
+            '\u0109': '\t',
+            '\u010d': '\r',
+            '\u010b': '\v',
+            '\u010c': '\f'
+        }
+
         new_vocab: dict[str, int] = {}
         for token, token_id in self.items.items():
             if token_id < 0:
                 raise ValueError(
                     f"Token id must be positive number: {token}:{token_id}"
                 )
-            new_vocab[token.replace("\u0120", " ")] = token_id
+            new_token = ""
+            for char in token:
+                new_token += whitespace.get(char, char)
+
+            new_vocab[new_token] = token_id
+
         self.items = new_vocab
         return self
